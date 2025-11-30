@@ -5,15 +5,9 @@ namespace TowerDefense.Tower
 {
     public class BulletController : MonoBehaviour
     {
-        [SerializeField] private float speed = 5f;
-        private EnemyController target;
-        private float damage;
-
-        public void SetTarget(EnemyController enemy, float damageAmount)
-        {
-            target = enemy;
-            damage = damageAmount;
-        }
+        public float moveSpeed = 5f;
+        public int damage = 1;
+        public EnemyController target;
 
         private void Update()
         {
@@ -24,7 +18,7 @@ namespace TowerDefense.Tower
             }
 
             Vector3 direction = (target.transform.position - transform.position).normalized;
-            transform.position += direction * speed * Time.deltaTime;
+            transform.position += direction * moveSpeed * Time.deltaTime;
 
             if (Vector3.Distance(transform.position, target.transform.position) < 0.1f)
             {

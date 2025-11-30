@@ -5,69 +5,51 @@ namespace TowerDefense.Tower
 {
     public class TowerMergeManager : MonoBehaviour
     {
-        [SerializeField] private Vector2Int gridSize = new Vector2Int(2, 3);
-        [SerializeField] private float cellSize = 1.5f;
-        [SerializeField] private TowerController towerPrefab;
+        public List<TowerController> placedTowers = new();
 
-        private readonly Dictionary<Vector2Int, TowerController> placedTowers = new();
-
-        public bool PlaceTower(TowerController tower, Vector2Int gridPosition)
+        /// <summary>
+        /// 生成したタレットを登録してください。
+        /// </summary>
+        public void RegisterTower(TowerController tower)
         {
-            if (placedTowers.ContainsKey(gridPosition))
+            if (tower != null && !placedTowers.Contains(tower))
             {
-                return false;
-            }
-
-            placedTowers[gridPosition] = tower;
-            tower.transform.position = GridToWorld(gridPosition);
-            MergeTowers();
-            return true;
-        }
-
-        public void MergeTowers()
-        {
-            var toMerge = new Dictionary<TowerData, List<Vector2Int>>();
-
-            foreach (var pair in placedTowers)
-            {
-                TowerController controller = pair.Value;
-                if (controller == null || controller.Data == null)
-                {
-                    continue;
-                }
-
-                if (!toMerge.ContainsKey(controller.Data))
-                {
-                    toMerge[controller.Data] = new List<Vector2Int>();
-                }
-
-                toMerge[controller.Data].Add(pair.Key);
-            }
-
-            foreach (var group in toMerge)
-            {
-                if (group.Value.Count >= 2 && group.Key.nextLevelTower != null)
-                {
-                    Vector2Int first = group.Value[0];
-                    Vector2Int second = group.Value[1];
-
-                    Destroy(placedTowers[first].gameObject);
-                    Destroy(placedTowers[second].gameObject);
-                    placedTowers.Remove(first);
-                    placedTowers.Remove(second);
-
-                    TowerController newTower = Instantiate(towerPrefab);
-                    newTower.UpgradeTo(group.Key.nextLevelTower);
-                    newTower.transform.position = GridToWorld(first);
-                    placedTowers[first] = newTower;
-                    break;
-                }
+                placedTowers.Add(tower);
             }
         }
 
-        private Vector3 GridToWorld(Vector2Int gridPos)
+        /// <summary>
+        /// baseTower を右クリックなどで指定し、同じ TowerData を持つ別タレットを探してマージします。
+        /// </summary>
+        public void TryMerge(TowerController baseTower)
         {
-            return new Vector3(gridPos.x * cellSize, gridPos.y * cellSize, 0f);
+            if (baseTower == null || baseTower.data == null)
+            {
+                return;
+            }
+
+            TowerController match = placedTowers.Find(t => t != baseTower && t.data == baseTower.data);
+            if (match == null || baseTower.data.nextLevelTower == null)
+            {
+                return;
+            }
+
+            Vector3 spawnPos = baseTower.transform.position;
+            placedTowers.Remove(baseTower);
+            placedTowers.Remove(match);
+            Destroy(baseTower.gameObject);
+            Destroy(match.gameObject);
+
+            TowerData nextData = baseTower.data.nextLevelTower;
+            if (nextData != null && nextData.towerPrefab != null)
+            {
+                GameObject obj = Instantiate(nextData.towerPrefab, spawnPos, Quaternion.identity);
+                if (obj.TryGetComponent(out TowerController controller))
+                {
+                    controller.data = nextData;
+                    RegisterTower(controller);
+                }
+            }
         }
     }
 }
