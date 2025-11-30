@@ -1,5 +1,6 @@
 using UnityEngine;
 using TowerDefense.UI;
+using TowerDefense.Tower;
 
 namespace TowerDefense.Core
 {
@@ -21,6 +22,7 @@ namespace TowerDefense.Core
 
         public GameState CurrentState { get; private set; } = GameState.Preparing;
         private int currentWave = 0;
+        private bool isAwaitingSelection;
 
         private void Start()
         {
@@ -44,8 +46,16 @@ namespace TowerDefense.Core
 
             if (currentWave < maxWave)
             {
-                selectionUI?.ShowRandomChoices();
-                StartNextWave();
+                if (selectionUI != null)
+                {
+                    isAwaitingSelection = true;
+                    CurrentState = GameState.Preparing;
+                    selectionUI.ShowRandomChoices();
+                }
+                else
+                {
+                    StartNextWave();
+                }
             }
             else
             {
@@ -53,14 +63,28 @@ namespace TowerDefense.Core
             }
         }
 
+        public void OnTowerSelected(TowerData selected)
+        {
+            if (!isAwaitingSelection)
+            {
+                return;
+            }
+
+            isAwaitingSelection = false;
+            CurrentState = GameState.Playing;
+            StartNextWave();
+        }
+
         public void OnGameOver()
         {
+            isAwaitingSelection = false;
             CurrentState = GameState.GameOver;
             Debug.Log("Game Over");
         }
 
         public void OnStageClear()
         {
+            isAwaitingSelection = false;
             CurrentState = GameState.Clear;
             Debug.Log("Stage Clear");
         }
