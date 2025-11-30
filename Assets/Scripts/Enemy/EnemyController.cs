@@ -6,17 +6,37 @@ namespace TowerDefense.Enemy
     [RequireComponent(typeof(Collider2D))]
     public class EnemyController : MonoBehaviour
     {
-        [SerializeField] private float maxHp = 10f;
+        [Header("Runtime data")]
+        public EnemyData data;
+
         [SerializeField] private float moveSpeed = 1.5f;
-        [SerializeField] private Transform target;
-        [SerializeField] private GameManager gameManager;
-        [SerializeField] private WaveManager waveManager;
+        [SerializeField] private int maxHP = 10;
 
-        private float currentHp;
+        private int currentHP;
+        private Transform targetBase;
+        private BaseHealth baseHealth;
+        private WaveManager waveManager;
 
-        private void Awake()
+        /// <summary>
+        /// EnemySpawner から生成後に呼び出して EnemyData をセットしてください。
+        /// </summary>
+        public void Setup(EnemyData enemyData)
         {
-            currentHp = maxHp;
+            data = enemyData;
+            if (data != null)
+            {
+                moveSpeed = data.moveSpeed;
+                maxHP = data.maxHP;
+            }
+
+            currentHP = maxHP;
+        }
+
+        private void Start()
+        {
+            targetBase = GameObject.FindWithTag("Base")?.transform;
+            baseHealth = FindObjectOfType<BaseHealth>();
+            waveManager = FindObjectOfType<WaveManager>();
         }
 
         private void Update()
@@ -24,45 +44,39 @@ namespace TowerDefense.Enemy
             Move();
         }
 
-        public void Initialize(GameManager manager, WaveManager wave, Transform targetBase)
+        private void Move()
         {
-            gameManager = manager;
-            waveManager = wave;
-            target = targetBase;
-        }
-
-        public void Move()
-        {
-            if (target == null)
+            if (targetBase == null)
             {
                 return;
             }
 
-            Vector3 direction = (target.position - transform.position).normalized;
+            Vector3 direction = (targetBase.position - transform.position).normalized;
             transform.position += direction * moveSpeed * Time.deltaTime;
         }
 
-        public void TakeDamage(float amount)
+        public void TakeDamage(int amount)
         {
-            currentHp = Mathf.Max(0f, currentHp - Mathf.Max(0f, amount));
-            if (currentHp <= 0f)
+            currentHP -= Mathf.Max(0, amount);
+            if (currentHP <= 0)
             {
-                OnDead();
+                Die();
             }
         }
 
         private void OnTriggerEnter2D(Collider2D other)
         {
-            if (other.TryGetComponent(out BaseHealth baseHealth))
+            if (other.gameObject == targetBase?.gameObject || other.TryGetComponent(out BaseHealth target))
             {
-                baseHealth.TakeDamage(10);
-                Destroy(gameObject);
+                int damage = data != null ? data.damageToBase : 10;
+                (baseHealth ?? target)?.TakeDamage(damage);
+                Die();
             }
         }
 
-        private void OnDead()
+        private void Die()
         {
-            waveManager?.RegisterEnemyDeath();
+            waveManager?.OnEnemyDead();
             Destroy(gameObject);
         }
     }

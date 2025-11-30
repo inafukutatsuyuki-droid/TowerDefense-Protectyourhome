@@ -1,60 +1,66 @@
 using System.Collections;
 using UnityEngine;
+using TowerDefense.Enemy;
 
 namespace TowerDefense.Core
 {
     public class WaveManager : MonoBehaviour
     {
-        [SerializeField] private Enemy.EnemySpawner enemySpawner;
-        [SerializeField] private float spawnInterval = 1.5f;
-
-        public int CurrentWave { get; private set; }
-        public int EnemiesToSpawn { get; private set; }
-        public int EnemiesSpawned { get; private set; }
-        public int AliveEnemies { get; private set; }
+        public EnemySpawner spawner;
+        public int currentWave = 1;
+        public int enemiesToSpawn = 5;
+        public int aliveEnemies;
+        public float spawnInterval = 1.5f;
 
         private GameManager gameManager;
+        private bool isSpawning;
 
-        private void Awake()
+        private void Start()
         {
-            gameManager = GetComponent<GameManager>();
+            gameManager = FindObjectOfType<GameManager>();
         }
 
         public void StartWave(int waveNumber)
         {
-            CurrentWave = waveNumber;
-            EnemiesSpawned = 0;
-            AliveEnemies = 0;
-            EnemiesToSpawn = Mathf.Max(3, waveNumber * 3);
-
-            if (enemySpawner != null)
-            {
-                StartCoroutine(SpawnRoutine());
-            }
-        }
-
-        public void RegisterEnemyDeath()
-        {
-            AliveEnemies = Mathf.Max(0, AliveEnemies - 1);
-            CheckWaveEnd();
-        }
-
-        public void CheckWaveEnd()
-        {
-            if (EnemiesSpawned >= EnemiesToSpawn && AliveEnemies <= 0)
-            {
-                gameManager?.OnWaveClear();
-            }
+            StopAllCoroutines();
+            currentWave = waveNumber;
+            enemiesToSpawn = Mathf.Max(3, waveNumber * 3);
+            aliveEnemies = 0;
+            isSpawning = true;
+            StartCoroutine(SpawnRoutine());
         }
 
         private IEnumerator SpawnRoutine()
         {
-            while (EnemiesSpawned < EnemiesToSpawn)
+            int spawned = 0;
+            while (spawned < enemiesToSpawn)
             {
-                enemySpawner.SpawnEnemy();
-                EnemiesSpawned++;
-                AliveEnemies++;
+                EnemyData data = spawner != null ? spawner.GetRandomEnemyData() : null;
+                spawner?.SpawnEnemy(data);
+                spawned++;
                 yield return new WaitForSeconds(spawnInterval);
+            }
+
+            isSpawning = false;
+            CheckWaveClear();
+        }
+
+        public void OnEnemySpawned()
+        {
+            aliveEnemies++;
+        }
+
+        public void OnEnemyDead()
+        {
+            aliveEnemies = Mathf.Max(0, aliveEnemies - 1);
+            CheckWaveClear();
+        }
+
+        private void CheckWaveClear()
+        {
+            if (!isSpawning && aliveEnemies <= 0)
+            {
+                gameManager?.OnWaveClear();
             }
         }
     }

@@ -1,25 +1,30 @@
 using UnityEngine;
+using TowerDefense.UI;
 
 namespace TowerDefense.Core
 {
     public class BaseHealth : MonoBehaviour
     {
-        [SerializeField] private int maxHP = 100;
-        [SerializeField] private GameManager gameManager;
+        public int maxHP = 100;
+        public HPBarUI hpBarUI;
 
-        public int CurrentHP { get; private set; }
-        public int MaxHP => maxHP;
+        private int currentHP;
+        private GameManager gameManager;
 
-        private void Awake()
+        private void Start()
         {
-            CurrentHP = maxHP;
+            currentHP = maxHP;
+            gameManager = FindObjectOfType<GameManager>();
+            hpBarUI?.UpdateHP(currentHP, maxHP);
         }
 
         public void TakeDamage(int amount)
         {
-            CurrentHP = Mathf.Max(0, CurrentHP - Mathf.Max(0, amount));
+            currentHP -= Mathf.Max(0, amount);
+            currentHP = Mathf.Max(0, currentHP);
+            hpBarUI?.UpdateHP(currentHP, maxHP);
 
-            if (CurrentHP <= 0)
+            if (currentHP <= 0)
             {
                 gameManager?.OnGameOver();
             }

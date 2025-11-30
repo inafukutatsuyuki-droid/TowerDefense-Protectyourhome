@@ -5,60 +5,83 @@ namespace TowerDefense.Tower
 {
     public class TowerController : MonoBehaviour
     {
-        [SerializeField] private TowerData data;
-        [SerializeField] private Transform firePoint;
+        public TowerData data;
+        public Transform firePoint;
 
         private EnemyController currentTarget;
-        private float attackTimer;
+        private float fireTimer;
+        private float damage;
+        private float fireInterval;
+        private float range;
 
-        public TowerData Data => data;
+        private void Start()
+        {
+            if (data != null)
+            {
+                damage = data.damage;
+                fireInterval = data.fireInterval;
+                range = data.range;
+            }
+        }
 
         private void Update()
         {
-            UpdateTarget();
-            TryAttack();
+            AcquireTarget();
+            HandleAttack();
         }
 
-        public void UpdateTarget()
+        private void AcquireTarget()
         {
             EnemyController[] enemies = FindObjectsOfType<EnemyController>();
-            float closestDistance = float.MaxValue;
-            EnemyController closestEnemy = null;
+            float closestDist = float.MaxValue;
+            EnemyController closest = null;
 
             foreach (EnemyController enemy in enemies)
             {
-                float distance = Vector2.Distance(transform.position, enemy.transform.position);
-                if (distance <= data.range && distance < closestDistance)
+                float dist = Vector2.Distance(transform.position, enemy.transform.position);
+                if (dist <= range && dist < closestDist)
                 {
-                    closestDistance = distance;
-                    closestEnemy = enemy;
+                    closestDist = dist;
+                    closest = enemy;
                 }
             }
 
-            currentTarget = closestEnemy;
+            currentTarget = closest;
         }
 
-        public void TryAttack()
+        private void HandleAttack()
         {
-            if (currentTarget == null || data == null || data.bulletPrefab == null)
+            if (data == null || data.bulletPrefab == null || currentTarget == null)
             {
                 return;
             }
 
-            attackTimer += Time.deltaTime;
-            if (attackTimer < data.fireInterval)
+            fireTimer += Time.deltaTime;
+            if (fireTimer < fireInterval)
             {
                 return;
             }
 
-            attackTimer = 0f;
+            fireTimer = 0f;
+            Attack();
+        }
+
+        private void Attack()
+        {
             BulletController bullet = Instantiate(data.bulletPrefab, firePoint != null ? firePoint.position : transform.position, Quaternion.identity);
-            bullet.SetTarget(currentTarget, data.damage);
+            bullet.damage = Mathf.RoundToInt(damage);
+            bullet.target = currentTarget;
         }
 
         public void UpgradeTo(TowerData newData)
         {
             data = newData;
+            if (data != null)
+            {
+                damage = data.damage;
+                fireInterval = data.fireInterval;
+                range = data.range;
+            }
         }
     }
 }

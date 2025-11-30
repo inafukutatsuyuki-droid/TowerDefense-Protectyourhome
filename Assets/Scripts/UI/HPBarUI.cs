@@ -1,28 +1,24 @@
 using UnityEngine;
 using UnityEngine.UI;
-using TowerDefense.Core;
 
 namespace TowerDefense.UI
 {
     public class HPBarUI : MonoBehaviour
     {
-        [SerializeField] private Slider hpSlider;
-        [SerializeField] private BaseHealth baseHealth;
+        public Slider slider;
 
-        private void Update()
+        /// <summary>
+        /// BaseHealth から呼び出して拠点の HP を表示します。
+        /// </summary>
+        public void UpdateHP(int current, int max)
         {
-            UpdateHP();
-        }
-
-        public void UpdateHP()
-        {
-            if (hpSlider == null || baseHealth == null)
+            if (slider == null)
             {
                 return;
             }
 
-            hpSlider.maxValue = baseHealth.MaxHP;
-            hpSlider.value = baseHealth.CurrentHP;
+            slider.maxValue = max;
+            slider.value = current;
         }
     }
 }

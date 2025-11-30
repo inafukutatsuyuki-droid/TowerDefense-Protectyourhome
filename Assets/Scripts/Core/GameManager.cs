@@ -1,5 +1,5 @@
 using UnityEngine;
-using TowerDefense.Core;
+using TowerDefense.UI;
 
 namespace TowerDefense.Core
 {
@@ -13,12 +13,11 @@ namespace TowerDefense.Core
 
     public class GameManager : MonoBehaviour
     {
-        [SerializeField] private WaveManager waveManager;
-        [SerializeField] private StageManager stageManager;
-        [SerializeField] private BaseHealth baseHealth;
-        [SerializeField] private UI.SelectionUI selectionUI;
-
-        [SerializeField] private int maxWaves = 3;
+        public WaveManager waveManager;
+        public StageManager stageManager;
+        public BaseHealth baseHealth;
+        public SelectionUI selectionUI;
+        public int maxWave = 3;
 
         public GameState CurrentState { get; private set; } = GameState.Preparing;
         private int currentWave = 0;
@@ -28,29 +27,12 @@ namespace TowerDefense.Core
             StartGame();
         }
 
-        public void StartGame()
+        private void StartGame()
         {
             CurrentState = GameState.Playing;
             stageManager?.InitStage();
             currentWave = 0;
             StartNextWave();
-        }
-
-        public void StartNextWave()
-        {
-            if (CurrentState != GameState.Playing)
-            {
-                return;
-            }
-
-            currentWave++;
-            if (currentWave > maxWaves)
-            {
-                OnGameClear();
-                return;
-            }
-
-            waveManager?.StartWave(currentWave);
         }
 
         public void OnWaveClear()
@@ -60,28 +42,33 @@ namespace TowerDefense.Core
                 return;
             }
 
-            // In a fuller implementation, selection UI would appear here.
-            StartNextWave();
+            if (currentWave < maxWave)
+            {
+                selectionUI?.ShowRandomChoices();
+                StartNextWave();
+            }
+            else
+            {
+                OnStageClear();
+            }
         }
 
         public void OnGameOver()
         {
-            if (CurrentState == GameState.GameOver)
-            {
-                return;
-            }
-
             CurrentState = GameState.GameOver;
+            Debug.Log("Game Over");
         }
 
-        public void OnGameClear()
+        public void OnStageClear()
         {
-            if (CurrentState == GameState.Clear)
-            {
-                return;
-            }
-
             CurrentState = GameState.Clear;
+            Debug.Log("Stage Clear");
+        }
+
+        private void StartNextWave()
+        {
+            currentWave++;
+            waveManager?.StartWave(currentWave);
         }
     }
 }
